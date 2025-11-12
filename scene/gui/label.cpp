@@ -159,7 +159,7 @@ void Label::_shape() const {
 		for (const String &str : para_text) {
 			Paragraph para;
 			para.text_rid = TS->create_shaped_text();
-			para.text = str;
+			para.text = str + String::chr(0x200B);
 			para.start = start;
 			start += str.length() + ps.length();
 			paragraphs.push_back(para);
@@ -680,7 +680,7 @@ PackedStringArray Label::get_configuration_warnings() const {
 			const Glyph *glyph = TS->shaped_text_get_glyphs(para.text_rid);
 			int64_t glyph_count = TS->shaped_text_get_glyph_count(para.text_rid);
 			for (int64_t i = 0; i < glyph_count; i++) {
-				if (glyph[i].font_rid == RID()) {
+				if (glyph[i].font_rid == RID() && glyph[i].index != 0) {
 					warnings.push_back(RTR("The current font does not support rendering one or more characters used in this Label's text."));
 					break;
 				}
@@ -1269,10 +1269,10 @@ String Label::get_text() const {
 void Label::set_visible_characters(int p_amount) {
 	if (visible_chars != p_amount) {
 		visible_chars = p_amount;
-		if (get_total_character_count() > 0) {
-			visible_ratio = (float)p_amount / (float)get_total_character_count();
-		} else {
+		if (p_amount == -1 || get_total_character_count() == 0) {
 			visible_ratio = 1.0;
+		} else {
+			visible_ratio = (float)p_amount / (float)get_total_character_count();
 		}
 		if (visible_chars_behavior == TextServer::VC_CHARS_BEFORE_SHAPING) {
 			text_dirty = true;

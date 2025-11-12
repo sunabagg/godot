@@ -197,6 +197,10 @@ def configure(env: "SConsEnvironment"):
     if env["builtin_libtheora"] and env["arch"] == "x86_64":
         env["x86_libtheora_opt_gcc"] = True
 
+    if env["sdl"]:
+        env.Append(CPPDEFINES=["SDL_ENABLED"])
+        env.Append(LINKFLAGS=["-framework", "ForceFeedback"])
+
     ## Flags
 
     env.Prepend(CPPPATH=["#platform/macos"])
@@ -231,6 +235,8 @@ def configure(env: "SConsEnvironment"):
             "Security",
             "-framework",
             "UniformTypeIdentifiers",
+            "-framework",
+            "IOSurface",
         ]
     )
     env.Append(LIBS=["pthread", "z"])
@@ -245,8 +251,7 @@ def configure(env: "SConsEnvironment"):
             env.Append(LINKFLAGS=["-lANGLE.macos." + env["arch"]])
             env.Append(LINKFLAGS=["-lEGL.macos." + env["arch"]])
             env.Append(LINKFLAGS=["-lGLES.macos." + env["arch"]])
-            extra_frameworks.add("IOSurface")
-        env.Prepend(CPPEXTPATH=["#thirdparty/angle/include"])
+        env.Prepend(CPPPATH=["#thirdparty/angle/include"])
 
     env.Append(LINKFLAGS=["-rpath", "@executable_path/../Frameworks", "-rpath", "@executable_path"])
 
@@ -259,12 +264,11 @@ def configure(env: "SConsEnvironment"):
         extra_frameworks.add("Metal")
         extra_frameworks.add("MetalKit")
         extra_frameworks.add("MetalFX")
-        env.Prepend(CPPEXTPATH=["#thirdparty/spirv-cross"])
+        env.Prepend(CPPPATH=["#thirdparty/spirv-cross"])
 
     if env["vulkan"]:
         env.AppendUnique(CPPDEFINES=["VULKAN_ENABLED", "RD_ENABLED"])
         extra_frameworks.add("Metal")
-        extra_frameworks.add("IOSurface")
         if not env["use_volk"]:
             env.Append(LINKFLAGS=["-lMoltenVK"])
 

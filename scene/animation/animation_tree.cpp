@@ -52,6 +52,9 @@ void AnimationNode::get_parameter_list(List<PropertyInfo> *r_list) const {
 
 Variant AnimationNode::get_parameter_default_value(const StringName &p_parameter) const {
 	Variant ret;
+	if (p_parameter == current_length || p_parameter == current_position || p_parameter == current_delta) {
+		return 0.0;
+	}
 	GDVIRTUAL_CALL(_get_parameter_default_value, p_parameter, ret);
 	return ret;
 }
@@ -77,7 +80,11 @@ void AnimationNode::set_parameter(const StringName &p_name, const Variant &p_val
 
 	const AHashMap<StringName, int>::Iterator it = property_cache.find(p_name);
 	if (it) {
-		process_state->tree->property_map.get_by_index(it->value).value.first = p_value;
+		Pair<Variant, bool> &prop = process_state->tree->property_map.get_by_index(it->value).value;
+		Variant value = p_value;
+		if (Animation::validate_type_match(prop.first, value)) {
+			prop.first = value;
+		}
 		return;
 	}
 
@@ -892,15 +899,22 @@ void AnimationTree::_setup_animation_player() {
 	clear_caches();
 }
 
+// `libraries` is a dynamic property, so we can't use `_validate_property` to change it.
+uint32_t AnimationTree::_get_libraries_property_usage() const {
+	if (!animation_player.is_empty()) {
+		return PROPERTY_USAGE_EDITOR | PROPERTY_USAGE_READ_ONLY;
+	}
+	return PROPERTY_USAGE_DEFAULT;
+}
+
 void AnimationTree::_validate_property(PropertyInfo &p_property) const {
-	AnimationMixer::_validate_property(p_property);
+	if (!Engine::get_singleton()->is_editor_hint()) {
+		return;
+	}
 
 	if (!animation_player.is_empty()) {
-		if (p_property.name == "root_node" || p_property.name.begins_with("libraries")) {
+		if (p_property.name == "root_node") {
 			p_property.usage |= PROPERTY_USAGE_READ_ONLY;
-		}
-		if (p_property.name.begins_with("libraries")) {
-			p_property.usage &= ~PROPERTY_USAGE_STORAGE;
 		}
 	}
 }
@@ -921,7 +935,11 @@ bool AnimationTree::_set(const StringName &p_name, const Variant &p_value) {
 		if (is_inside_tree() && property_map[p_name].second) {
 			return false; // Prevent to set property by user.
 		}
-		property_map[p_name].first = p_value;
+		Pair<Variant, bool> &prop = property_map[p_name];
+		Variant value = p_value;
+		if (Animation::validate_type_match(prop.first, value)) {
+			prop.first = value;
+		}
 		return true;
 	}
 

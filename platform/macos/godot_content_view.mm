@@ -31,6 +31,7 @@
 #import "godot_content_view.h"
 
 #import "display_server_macos.h"
+#import "godot_window.h"
 #import "key_mapping_macos.h"
 
 #include "main/main.h"
@@ -66,6 +67,10 @@
 @end
 
 @implementation GodotContentView
+
+- (BOOL)acceptsFirstMouse:(NSEvent *)event {
+	return YES;
+}
 
 - (void)setFrameSize:(NSSize)newSize {
 	DisplayServerMacOS *ds = (DisplayServerMacOS *)DisplayServer::get_singleton();
@@ -153,7 +158,12 @@
 // MARK: Backing Layer
 
 - (CALayer *)makeBackingLayer {
-	return [[CAMetalLayer class] layer];
+	CAMetalLayer *layer = [CAMetalLayer new];
+	layer.edgeAntialiasingMask = 0;
+	layer.masksToBounds = NO;
+	layer.presentsWithTransaction = NO;
+	[layer removeAllAnimations];
+	return layer;
 }
 
 - (BOOL)wantsUpdateLayer {
@@ -284,7 +294,7 @@
 	}
 
 	Char16String text;
-	text.resize([characters length] + 1);
+	text.resize_uninitialized([characters length] + 1);
 	[characters getCharacters:(unichar *)text.ptrw() range:NSMakeRange(0, [characters length])];
 
 	String u32text = String::utf16(text.ptr(), text.length());
@@ -532,6 +542,11 @@
 	mm->set_relative_screen_position(relativeMotion);
 	ds->get_key_modifier_state([event modifierFlags], mm);
 
+	const NSRect contentRect = [wd.window_view frame];
+	if (NSPointInRect([event locationInWindow], contentRect)) {
+		ds->mouse_enter_window(window_id);
+	}
+
 	Input::get_singleton()->parse_input_event(mm);
 }
 
@@ -665,7 +680,7 @@
 		if (!wd.im_active && length > 0 && keycode_has_unicode(KeyMappingMacOS::remap_key([event keyCode], [event modifierFlags], true))) {
 			// Fallback unicode character handler used if IME is not active.
 			Char16String text;
-			text.resize([characters length] + 1);
+			text.resize_uninitialized([characters length] + 1);
 			[characters getCharacters:(unichar *)text.ptrw() range:NSMakeRange(0, [characters length])];
 
 			String u32text = String::utf16(text.ptr(), text.length());

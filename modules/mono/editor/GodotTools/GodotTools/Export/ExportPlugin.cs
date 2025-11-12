@@ -185,7 +185,7 @@ namespace GodotTools.Export
                 BuildConfig = isDebug ? "ExportDebug" : "ExportRelease",
                 IncludeDebugSymbols = (bool)GetOption("dotnet/include_debug_symbols"),
                 RidOS = DetermineRuntimeIdentifierOS(platform, useAndroidLinuxBionic),
-                Archs = new List<string>(),
+                Archs = [],
                 UseTempDir = platform != OS.Platforms.iOS, // xcode project links directly to files in the publish dir, so use one that sticks around.
                 BundleOutputs = true,
             };
@@ -231,7 +231,7 @@ namespace GodotTools.Export
                 targets.Add(new PublishConfig
                 {
                     BuildConfig = publishConfig.BuildConfig,
-                    Archs = new List<string> { "arm64", "x86_64" },
+                    Archs = ["arm64", "x86_64"],
                     BundleOutputs = false,
                     IncludeDebugSymbols = publishConfig.IncludeDebugSymbols,
                     RidOS = OS.DotNetOS.iOSSimulator,
@@ -285,7 +285,7 @@ namespace GodotTools.Export
                     if (!BuildManager.PublishProjectBlocking(buildConfig, platform,
                             runtimeIdentifier, publishOutputDir, includeDebugSymbols))
                     {
-                        throw new InvalidOperationException("Failed to build project.");
+                        throw new InvalidOperationException("Failed to build project. Check MSBuild panel for details.");
                     }
 
                     string soExt = ridOS switch
@@ -414,7 +414,7 @@ namespace GodotTools.Export
                                 {
                                     if (platform == OS.Platforms.iOS && path.EndsWith(".dat", StringComparison.OrdinalIgnoreCase))
                                     {
-                                        AddIosBundleFile(path);
+                                        AddAppleEmbeddedPlatformBundleFile(path);
                                     }
                                     else
                                     {
@@ -461,7 +461,7 @@ namespace GodotTools.Export
                     throw new InvalidOperationException("Failed to generate xcframework.");
                 }
 
-                AddIosEmbeddedFramework(xcFrameworkPath);
+                AddAppleEmbeddedPlatformEmbeddedFramework(xcFrameworkPath);
             }
         }
 
@@ -564,7 +564,7 @@ namespace GodotTools.Export
             public bool UseTempDir;
             public bool BundleOutputs;
             public string RidOS;
-            public List<string> Archs;
+            public HashSet<string> Archs;
             public string BuildConfig;
             public bool IncludeDebugSymbols;
         }

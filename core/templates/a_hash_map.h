@@ -214,10 +214,8 @@ private:
 
 		HashMapData *old_map_data = map_data;
 
-		map_data = reinterpret_cast<HashMapData *>(Memory::alloc_static(sizeof(HashMapData) * real_capacity));
+		map_data = reinterpret_cast<HashMapData *>(Memory::alloc_static_zeroed(sizeof(HashMapData) * real_capacity));
 		elements = reinterpret_cast<MapKeyValue *>(Memory::realloc_static(elements, sizeof(MapKeyValue) * (_get_resize_count(capacity) + 1)));
-
-		memset(map_data, EMPTY_HASH, real_capacity * sizeof(HashMapData));
 
 		if (num_elements != 0) {
 			for (uint32_t i = 0; i < real_old_capacity; i++) {
@@ -236,10 +234,8 @@ private:
 			// Allocate on demand to save memory.
 
 			uint32_t real_capacity = capacity + 1;
-			map_data = reinterpret_cast<HashMapData *>(Memory::alloc_static(sizeof(HashMapData) * real_capacity));
+			map_data = reinterpret_cast<HashMapData *>(Memory::alloc_static_zeroed(sizeof(HashMapData) * real_capacity));
 			elements = reinterpret_cast<MapKeyValue *>(Memory::alloc_static(sizeof(MapKeyValue) * (_get_resize_count(capacity) + 1)));
-
-			memset(map_data, EMPTY_HASH, real_capacity * sizeof(HashMapData));
 		}
 
 		if (unlikely(num_elements > _get_resize_count(capacity))) {
@@ -414,13 +410,15 @@ public:
 	// Reserves space for a number of elements, useful to avoid many resizes and rehashes.
 	// If adding a known (possibly large) number of elements at once, must be larger than old capacity.
 	void reserve(uint32_t p_new_capacity) {
-		ERR_FAIL_COND_MSG(p_new_capacity < size(), "reserve() called with a capacity smaller than the current size. This is likely a mistake.");
 		if (elements == nullptr) {
 			capacity = MAX(4u, p_new_capacity);
 			capacity = next_power_of_2(capacity) - 1;
 			return; // Unallocated yet.
 		}
 		if (p_new_capacity <= get_capacity()) {
+			if (p_new_capacity < size()) {
+				WARN_VERBOSE("reserve() called with a capacity smaller than the current size. This is likely a mistake.");
+			}
 			return;
 		}
 		_resize_and_rehash(p_new_capacity);

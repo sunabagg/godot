@@ -1434,8 +1434,6 @@ void Curve2D::_bind_methods() {
 	ADD_ARRAY_COUNT("Points", "point_count", "set_point_count", "get_point_count", "point_");
 }
 
-Curve2D::Curve2D() {}
-
 /***********************************************************************************/
 /***********************************************************************************/
 /***********************************************************************************/
@@ -2460,7 +2458,7 @@ void Curve3D::_get_property_list(List<PropertyInfo> *p_list) const {
 			p_list->push_back(pi);
 		}
 
-		pi = PropertyInfo(Variant::FLOAT, vformat("point_%d/tilt", i));
+		pi = PropertyInfo(Variant::FLOAT, vformat("point_%d/tilt", i), PROPERTY_HINT_RANGE, "-360,360,0.1,or_less,or_greater,radians_as_degrees");
 		pi.usage &= ~PROPERTY_USAGE_STORAGE;
 		p_list->push_back(pi);
 	}
@@ -2514,5 +2512,3 @@ void Curve3D::_bind_methods() {
 	ADD_GROUP("Up Vector", "up_vector_");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "up_vector_enabled"), "set_up_vector_enabled", "is_up_vector_enabled");
 }
-
-Curve3D::Curve3D() {}
