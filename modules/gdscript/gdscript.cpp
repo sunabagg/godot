@@ -30,6 +30,8 @@
 
 #include "gdscript.h"
 
+#include "core/math/math_defs.h"
+#include "core/variant/variant.h"
 #include "gdscript_analyzer.h"
 #include "gdscript_cache.h"
 #include "gdscript_compiler.h"
@@ -1858,6 +1860,12 @@ bool GDScriptInstance::has_method(const StringName &p_method) const {
 		if (E) {
 			return true;
 		}
+		Variant hack_var;
+		if (get("__override_" + p_method, hack_var)) {
+			if (hack_var.get_type() == Variant::CALLABLE) {
+				return true;
+			}
+		}
 		sptr = sptr->base.ptr();
 	}
 
@@ -1896,6 +1904,28 @@ void GDScriptInstance::_call_implicit_ready_recursively(GDScript *p_script) {
 
 Variant GDScriptInstance::callp(const StringName &p_method, const Variant **p_args, int p_argcount, Callable::CallError &r_error) {
 	GDScript *sptr = script.ptr();
+	Variant hack_var;
+		if (get("__override_" + p_method, hack_var)) {
+			if (hack_var.get_type() == Variant::CALLABLE) {
+				Callable callable = hack_var;
+				Variant hack_ret;
+				callable.callp(p_args, p_argcount, hack_ret, r_error);
+				// Force jump table.
+				switch (r_error.error) {
+					case Callable::CallError::CALL_OK:
+						return hack_ret;
+					case Callable::CallError::CALL_ERROR_INVALID_METHOD:
+						break;
+					case Callable::CallError::CALL_ERROR_INVALID_ARGUMENT:
+					case Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
+					case Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
+					case Callable::CallError::CALL_ERROR_METHOD_NOT_CONST:
+						return hack_ret;
+					case Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL: {
+			}
+		}
+			}
+		}
 	if (unlikely(p_method == SceneStringName(_ready))) {
 		// Call implicit ready first, including for the super classes recursively.
 		_call_implicit_ready_recursively(sptr);
