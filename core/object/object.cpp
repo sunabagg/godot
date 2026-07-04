@@ -657,6 +657,10 @@ bool Object::has_method(const StringName &p_method) const {
 		return true;
 	}
 
+	if (get("__override_" + p_method).get_type() == Variant::CALLABLE) {
+		return true;
+	}
+
 	if (script_instance && script_instance->has_method(p_method)) {
 		return true;
 	}
@@ -796,6 +800,25 @@ Variant Object::callp(const StringName &p_method, const Variant **p_args, int p_
 
 	Variant ret;
 	OBJ_DEBUG_LOCK
+
+	if (get("__override_" + p_method).get_type() == Variant::CALLABLE) {
+		Callable callable = get("__override_" + p_method);
+		callable.callp(p_args, p_argcount, ret, r_error);
+		// Force jump table.
+		switch (r_error.error) {
+			case Callable::CallError::CALL_OK:
+				return ret;
+			case Callable::CallError::CALL_ERROR_INVALID_METHOD:
+				break;
+			case Callable::CallError::CALL_ERROR_INVALID_ARGUMENT:
+			case Callable::CallError::CALL_ERROR_TOO_MANY_ARGUMENTS:
+			case Callable::CallError::CALL_ERROR_TOO_FEW_ARGUMENTS:
+			case Callable::CallError::CALL_ERROR_METHOD_NOT_CONST:
+				return ret;
+			case Callable::CallError::CALL_ERROR_INSTANCE_IS_NULL: {
+			}
+		}
+	}
 
 	if (script_instance) {
 		ret = script_instance->callp(p_method, p_args, p_argcount, r_error);
